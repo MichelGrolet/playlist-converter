@@ -88,7 +88,6 @@ async function exchangeAuthCodeForToken(authCode) {
     }
 }
 
-
 function getAccessToken(prefix) {
     return localStorage.getItem(`${prefix}AccessToken`);
 }
