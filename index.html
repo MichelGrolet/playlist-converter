@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<h1>Connections</h1>
+<button id="connectSpotifyBtn">Connect to Spotify</button>
+
+<h1>Convert a playlist</h1>
+
+<h1>Your Spotify Playlists</h1>
+<ul id="playlistContainer"></ul>
+
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script>
+    // await dom load
+    document.addEventListener('DOMContentLoaded', function() {
+        const spotifyAccessToken = extractSpotifyAccessToken();
+        if (spotifyAccessToken) {
+            document.getElementById('connectSpotifyBtn').style.display = 'none';
+        } else {
+            document.getElementById('connectSpotifyBtn').addEventListener('click', function() {
+                const clientId = 'c46b5e32ccfa4cd583b351c58cb9f99d'; // Replace with your Spotify Client ID
+                const redirectUri = encodeURIComponent('http://localhost:52330/playlist-converter/new.html'); // Replace with your Redirect URI
+                const scopes = 'user-read-private user-read-email'; // Replace or add more scopes as needed
+            
+                const url = `https://accounts.spotify.com/authorize?response_type=token&client_id=${clientId}&scope=${encodeURIComponent(scopes)}&redirect_uri=${redirectUri}`;
+            
+                window.location.href = url;
+            });
+        }
+    });
+
+    function extractSpotifyAccessToken() {
+        const hash = window.location.hash.substring(1);
+        const params = new URLSearchParams(hash);
+        return params.get('access_token');
+    }
+</script>
