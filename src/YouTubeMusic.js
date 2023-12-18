@@ -4,7 +4,7 @@ import 'https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js';
 class YouTubeMusic extends MusicProviderInterface {
     static instance = null;
     static APIKey = "159861648417-pg4ftuci88bo8a9l4he1c6qbqjlk2s1b.apps.googleusercontent.com";
-    static scopes = 'https://www.googleapis.com/auth/youtube.readonly';
+    static scopes = 'https://www.googleapis.com/auth/youtube';
     static prefix = "youTubeMusic";
     static name = "YouTube Music";
     static redirectUri = "http://localhost:52330/index.html";

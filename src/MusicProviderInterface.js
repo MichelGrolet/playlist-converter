@@ -1,6 +1,6 @@
 export default class MusicProviderInterface {
     static instance = null;
-    APIKey = "";
+    static APIKey = "";
     static scopes = "";
     static prefix = "";
     static name = "";

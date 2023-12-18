@@ -94,6 +94,8 @@ function getAccessToken(prefix) {
 
 function updatePlaylistList() {
     const fromMusicService = document.getElementById('fromMusicService').value;
+    if (!fromMusicService) return;
+
     const musicProvider = getMusicService(fromMusicService);
 
     if (!musicProvider.instance) {
