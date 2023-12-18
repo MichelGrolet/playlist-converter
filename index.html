@@ -1,38 +1,48 @@
 <!DOCTYPE html>
-<h1>Connections</h1>
-<button id="connectSpotifyBtn">Connect to Spotify</button>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playlist Converter</title>
+    <link rel="stylesheet" href="./styles/style.css">
+</head>
+<body>
+    <header>
+        <h1>Connections</h1>
+    </header>
 
-<h1>Convert a playlist</h1>
-<label for="playlistSelector">Select a playlist</label>
-<select id="playlistSelector"></select>
+    <section>
+        <button id="connectSpotifyBtn" aria-label="Connect to Spotify">Connect to Spotify</button>
+        <button id="connectYouTubeMusicBtn" aria-label="Connect to YouTube Music">Connect to YouTube Music</button>
+    </section>
 
-<h1>Your Spotify Playlists</h1>
-<ul id="playlistContainer"></ul>
+    <main>
+        <h1>Convert a Playlist</h1>
+        <form>
+            <fieldset>
+                <legend>Select services</legend>
 
-<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-<script src="./spotify.js"></script>
-<script>
-    // await dom load
-    document.addEventListener('DOMContentLoaded', function() {
-        const spotifyAccessToken = extractSpotifyAccessToken();
-        if (spotifyAccessToken) {
-            document.getElementById('connectSpotifyBtn').style.display = 'none';
-        } else {
-            document.getElementById('connectSpotifyBtn').addEventListener('click', function() {
-                const clientId = 'c46b5e32ccfa4cd583b351c58cb9f99d'; // Replace with your Spotify Client ID
-                const redirectUri = encodeURIComponent('http://localhost:52330/playlist-converter/index.html'); // Replace with your Redirect URI
-                const scopes = 'user-read-private user-read-email'; // Replace or add more scopes as needed
-            
-                const url = `https://accounts.spotify.com/authorize?response_type=token&client_id=${clientId}&scope=${encodeURIComponent(scopes)}&redirect_uri=${redirectUri}`;
-            
-                window.location.href = url;
-            });
-        }
-    });
+                <label for="fromMusicService">Select an origin music service:</label>
+                <select id="fromMusicService" aria-label="Origin Music Service"></select>
 
-    function extractSpotifyAccessToken() {
-        const hash = window.location.hash.substring(1);
-        const params = new URLSearchParams(hash);
-        return params.get('access_token');
-    }
-</script>
+                <label for="toMusicService">Convert to:</label>
+                <select id="toMusicService" aria-label="Destination Music Service"></select>
+            </fieldset>
+            <br/>
+            <fieldset>
+                <legend>Select a playlist and convert</legend>
+
+                <label for="playlistSelector">Select a playlist:</label>
+                <select id="playlistSelector" aria-label="Playlist Selector"></select>
+
+                <button id="convertBtn" type="submit">Convert</button>
+
+            </fieldset>
+        </form>
+    </main>
+
+    <footer>
+        <script type="module" src="./src/script.js"></script>
+    </footer>
+</body>
+</html>
