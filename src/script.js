@@ -5,31 +5,89 @@ import config from './config.js';
 document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
-    const spotifyAccessToken = getAccessToken('spotify');
-    console.log("spotifyAccessToken" + spotifyAccessToken + " " + getAccessToken('spotify'));
-    if (spotifyAccessToken) {
-        document.getElementById('connectSpotifyBtn').style.display = 'none';
-        new Spotify(spotifyAccessToken);
-    } else {
-        document.getElementById('connectSpotifyBtn').addEventListener('click', function() {
-            new Spotify();
-        });
-    }
-
-    const youTubeMusicAccessToken = getAccessToken('youTubeMusic');
-    console.log("youTubeMusicAccessToken" + youTubeMusicAccessToken + " " + getAccessToken('youTubeMusic'));
-    if (youTubeMusicAccessToken) {
-        document.getElementById('connectYouTubeMusicBtn').style.display = 'none';
-        //new YouTubeMusic(youTubeMusicAccessToken);
-    } else {
-        document.getElementById('connectYouTubeMusicBtn').addEventListener('click', function() {
-          //  new YouTubeMusic();
-        });
-    }
-
+    await initSpotify();
+    await initYouTubeMusic();
     fillForm();
     updatePlaylistList();
 }
+
+async function initYouTubeMusic() {
+    const hash = window.location.hash.substr(1);
+    const urlParams = new URLSearchParams(hash);
+    const accessToken =  urlParams.get('access_token');
+
+    let youTubeMusicAccessToken = getAccessToken('youTubeMusic');
+
+    if (accessToken || youTubeMusicAccessToken) {
+        if (!youTubeMusicAccessToken) {
+            youTubeMusicAccessToken = accessToken;
+            localStorage.setItem('youTubeMusicAccessToken', youTubeMusicAccessToken);
+        }
+        document.getElementById('connectYouTubeMusicBtn').style.display = 'none';
+        const youTubeMusic = new YouTubeMusic(youTubeMusicAccessToken);
+        youTubeMusic.initialize();
+    } else {
+        document.getElementById('connectYouTubeMusicBtn').addEventListener('click', function () {
+            const youTubeMusic = new YouTubeMusic();
+            youTubeMusic.initialize();
+        });
+    }
+
+}
+
+async function initSpotify() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const authCode = urlParams.get('code');
+
+    let spotifyAccessToken = getAccessToken('spotify');
+
+    if (authCode || spotifyAccessToken) {
+        if (!spotifyAccessToken) {
+            spotifyAccessToken = await exchangeAuthCodeForToken(authCode);
+            localStorage.setItem('spotifyAccessToken', spotifyAccessToken);
+        }
+        document.getElementById('connectSpotifyBtn').style.display = 'none';
+        const spotify = new Spotify(spotifyAccessToken);
+        spotify.initialize();
+    } else {
+        document.getElementById('connectSpotifyBtn').addEventListener('click', function () {
+            const spotify = new Spotify();
+            spotify.initialize();
+        });
+    }
+}
+
+async function exchangeAuthCodeForToken(authCode) {
+    const codeVerifier = localStorage.getItem('spotifyCodeVerifier');
+    const payload = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+            client_id: Spotify.APIKey,
+            grant_type: 'authorization_code',
+            code: authCode,
+            redirect_uri: Spotify.redirectUri,
+            code_verifier: codeVerifier,
+        }),
+    };
+
+    try {
+        const response = await fetch('https://accounts.spotify.com/api/token', payload);
+        const data = await response.json();
+        if (data.access_token) {
+            return data.access_token;
+        } else {
+            console.error('Failed to retrieve access token:', data);
+            return null;
+        }
+    } catch (error) {
+        console.error('Error fetching access token:', error);
+        return null;
+    }
+}
+
 
 function getAccessToken(prefix) {
     return localStorage.getItem(`${prefix}AccessToken`);
@@ -37,9 +95,19 @@ function getAccessToken(prefix) {
 
 function updatePlaylistList() {
     const fromMusicService = document.getElementById('fromMusicService').value;
-    if (fromMusicService == "" || !getMusicService(fromMusicService)) throw new Error(`Music service not found for prefix '${fromMusicService}'`);
     const musicProvider = getMusicService(fromMusicService);
-    musicProvider.fillPlaylistSelector();
+
+    if (!musicProvider.instance) {
+        console.error(`Music service instance not found for prefix '${fromMusicService}'`);
+        return;
+    }
+
+    if (typeof musicProvider.instance.fillPlaylistSelector !== 'function') {
+        console.error(`fillPlaylistSelector method not found on the music service instance for prefix '${fromMusicService}'`);
+        return;
+    }
+
+    musicProvider.instance.fillPlaylistSelector();
 }
 
 function getMusicService(prefix) {

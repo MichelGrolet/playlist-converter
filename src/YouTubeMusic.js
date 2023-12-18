@@ -16,14 +16,15 @@ class YouTubeMusic extends MusicProviderInterface {
         if (YouTubeMusic.instance) return YouTubeMusic.instance;
         YouTubeMusic.instance = this;
 
-        if (accessToken) setAccessToken(accessToken);
-        else this.authenticate();
-        this.initialize();
+        if (accessToken) this.setAccessToken(accessToken);
     }
 
     async initialize() {
+        if (!this.getAccessToken()) {
+            this.authenticate();
+            return;
+        }
         this.playlists = await this.fetchPlaylists();
-        this.fillPlaylistSelector();
     }
 
     async authenticate() {
@@ -40,7 +41,7 @@ class YouTubeMusic extends MusicProviderInterface {
                     maxResults: 25  // Adjust as needed
                 },
                 headers: {
-                    'Authorization': `Bearer ${this.getAccessToken}`
+                    'Authorization': `Bearer ${this.getAccessToken()}`
                 }
             });
 
@@ -56,6 +57,7 @@ class YouTubeMusic extends MusicProviderInterface {
 
     fillPlaylistSelector(selector = '#playlistSelector') {
         const element = document.querySelector(selector);
+        element.innerHTML = '';
         this.playlists.forEach(playlist => {
             const option = document.createElement('option');
             option.value = playlist.id;
