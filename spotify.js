@@ -16,6 +16,16 @@ async function fetchSpotifyPlaylists(token) {
     }
 }
 
+function fillPlaylistSelector(playlists) {
+    const selector = document.getElementById('playlistSelector');
+    playlists.forEach(playlist => {
+        const option = document.createElement('option');
+        option.value = playlist.url;
+        option.textContent = playlist.name;
+        selector.appendChild(option);
+    });
+}
+
 function displayPlaylists(playlists) {
     const container = document.getElementById('playlistContainer');
     playlists.forEach(playlist => {
@@ -38,6 +48,7 @@ function displayPlaylists(playlists) {
     if (accessToken) {
         const playlists = await fetchSpotifyPlaylists(accessToken);
         displayPlaylists(playlists);
+        fillPlaylistSelector(playlists);
     } else {
         console.error('Access token not found');
     }

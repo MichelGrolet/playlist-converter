@@ -3,11 +3,14 @@
 <button id="connectSpotifyBtn">Connect to Spotify</button>
 
 <h1>Convert a playlist</h1>
+<label for="playlistSelector">Select a playlist</label>
+<select id="playlistSelector"></select>
 
 <h1>Your Spotify Playlists</h1>
 <ul id="playlistContainer"></ul>
 
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="./spotify.js"></script>
 <script>
     // await dom load
     document.addEventListener('DOMContentLoaded', function() {
@@ -17,7 +20,7 @@
         } else {
             document.getElementById('connectSpotifyBtn').addEventListener('click', function() {
                 const clientId = 'c46b5e32ccfa4cd583b351c58cb9f99d'; // Replace with your Spotify Client ID
-                const redirectUri = encodeURIComponent('http://localhost:52330/playlist-converter/new.html'); // Replace with your Redirect URI
+                const redirectUri = encodeURIComponent('http://localhost:52330/playlist-converter/index.html'); // Replace with your Redirect URI
                 const scopes = 'user-read-private user-read-email'; // Replace or add more scopes as needed
             
                 const url = `https://accounts.spotify.com/authorize?response_type=token&client_id=${clientId}&scope=${encodeURIComponent(scopes)}&redirect_uri=${redirectUri}`;
