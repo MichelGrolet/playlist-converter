@@ -27,6 +27,11 @@ class Spotify extends MusicProviderInterface {
         this.playlists = await this.fetchPlaylists();
     }
 
+    async cleanLocalStorage() {
+        localStorage.removeItem(Spotify.prefix+'AccessToken');
+        localStorage.removeItem(Spotify.prefix+'CodeVerifier');
+    }
+
     generateRandomString(length) {
         const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
         let array = new Uint8Array(length);
@@ -60,10 +65,11 @@ class Spotify extends MusicProviderInterface {
                 }
             });
 
-            return response.data.items.map(playlist => ({
+            let playlists = response.data.items.map(playlist => ({
                 name: playlist.name,
                 url: playlist.external_urls.spotify
             }));
+            return playlists;
         } catch (error) {
             console.error('Error fetching Spotify playlists:', error);
             return [];
@@ -87,6 +93,71 @@ class Spotify extends MusicProviderInterface {
 
     setAccessToken(token) {
         localStorage.setItem(Spotify.prefix + 'AccessToken', token);
+    }
+
+    async fetchPlaylistData(playlistId) {
+        try {
+            const response = await axios.post(`https://api.spotify.com/v1/me/playlists/${playlistId}/tracks`, {
+                headers: {
+                    'Authorization': `Bearer ${this.getAccessToken()}`
+                }
+            });
+            const tracks = response.data.items.map(track => ({
+                name: track.name,
+                author: track.artists[0].name,
+                id: `spotify:track:${track.id}`
+            }));
+            console.log(tracks);
+            return {
+                name: response.data.name,
+                description: response.data.description,
+                tracks: tracks
+            }
+        } catch {
+            console.error('Error fetching Spotify playlists:', error);
+            return [];
+        }
+    }
+
+    async createPlaylist(data) {
+        try {
+            const response = await axios.post('https://api.spotify.com/v1/me/playlists', {
+                headers: {
+                    name: data.name,
+                    description: data.description,
+                    public: true,
+                    collaborative: false,
+                    authorization: `Bearer ${this.getAccessToken()}`,
+                }
+            });
+            const playlistId = response.data.id;
+
+            this.addTracksToPlaylist(data.tracks, playlistId);
+
+            return playlistId;
+        } catch {
+            console.error('Error creating a new playlist:', error);
+            return [];
+        }
+    }
+
+    async addTracksToPlaylist(tracks) {
+        const uris = Object.values(tracks).map(track => track.id).join(',');    
+
+        try {
+            // add tracks to the playlist
+            const playlistId = this.createPlaylist();
+            const response = await axios.post(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
+                headers: {
+                    uris: uris,
+                    authorization: `Bearer ${this.getAccessToken()}`
+                }
+            });
+            return response.data;
+        } catch {
+            console.error('Error adding tracks to the playlist:', error);
+            return [];
+        }
     }
 }
 

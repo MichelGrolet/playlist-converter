@@ -12,7 +12,7 @@ async function init() {
 }
 
 async function initYouTubeMusic() {
-    const hash = window.location.hash.substr(1);
+    const hash = window.location.hash.substring(1);
     const urlParams = new URLSearchParams(hash);
     const accessToken =  urlParams.get('access_token');
 
@@ -23,16 +23,20 @@ async function initYouTubeMusic() {
             youTubeMusicAccessToken = accessToken;
             localStorage.setItem('youTubeMusicAccessToken', youTubeMusicAccessToken);
         }
-        document.getElementById('connectYouTubeMusicBtn').style.display = 'none';
+        document.getElementById('connectYouTubeMusicCheckbox').style.display = 'none';
         const youTubeMusic = new YouTubeMusic(youTubeMusicAccessToken);
         youTubeMusic.initialize();
     } else {
-        document.getElementById('connectYouTubeMusicBtn').addEventListener('click', function () {
-            const youTubeMusic = new YouTubeMusic();
-            youTubeMusic.initialize();
+        document.getElementById('connectYouTubeMusicCheckbox').addEventListener('change', function (e) {
+            const youtube = new YouTubeMusic();
+            if (e.target.checked) {
+                youtube.initialize();
+            } else {
+                const youtube = new YouTubeMusic();
+                youtube.cleanLocalStorage();
+            }
         });
     }
-
 }
 
 async function initSpotify() {
@@ -46,13 +50,17 @@ async function initSpotify() {
             spotifyAccessToken = await exchangeAuthCodeForToken(authCode);
             localStorage.setItem('spotifyAccessToken', spotifyAccessToken);
         }
-        document.getElementById('connectSpotifyBtn').style.display = 'none';
+        document.getElementById('connectSpotifyCheckbox').checked = true;
         const spotify = new Spotify(spotifyAccessToken);
         spotify.initialize();
     } else {
-        document.getElementById('connectSpotifyBtn').addEventListener('click', function () {
+        document.getElementById('connectSpotifyCheckbox').addEventListener('change', function (e) {
             const spotify = new Spotify();
-            spotify.initialize();
+            if (e.target.checked) {
+                spotify.initialize();
+            } else {
+                spotify.cleanLocalStorage();
+            }
         });
     }
 }
@@ -115,10 +123,21 @@ function getMusicService(prefix) {
     return config.musicServices.get(prefix);
 }
 
+async function convertPlaylist() {
+    const from = getMusicService(document.getElementById('fromMusicService'));
+    const to = getMusicService(document.getElementById('toMusicService'));
+
+    const playlistId = document.getElementById('playlistSelector').value;
+    const playlistData = await from.instance.fetchPlaylistData(playlistId);
+    
+    to.createPlaylist(playlistData);
+}
+
 function fillForm() {
     // Get the select elements by their IDs
     const fromMusicServiceSelect = document.getElementById('fromMusicService');
     const toMusicServiceSelect = document.getElementById('toMusicService');
+    const convertBtn = document.getElementById('convertBtn');
 
     // Function to populate select options
     function populateSelectOptions(selectElement, selectedOption = YouTubeMusic) {
@@ -137,4 +156,5 @@ function fillForm() {
 
     // Change the playlists when the music service changes
     fromMusicServiceSelect.addEventListener('change', updatePlaylistList);
+    convertBtn.addEventListener('click', convertPlaylist);
 }

@@ -12,8 +12,11 @@
     </header>
 
     <section>
-        <button id="connectSpotifyBtn" aria-label="Connect to Spotify">Connect to Spotify</button>
-        <button id="connectYouTubeMusicBtn" aria-label="Connect to YouTube Music">Connect to YouTube Music</button>
+        <label for="connectSpotifyCheckbox">Connect to Spotify</label>
+        <input type="checkbox" id="connectSpotifyCheckbox" aria-label="Connect to Spotify">
+        
+        <label for="connectYouTubeMusicCheckbox">Connect to YouTube Music</label>
+        <input type="checkbox" id="connectYouTubeMusicCheckbox" aria-label="Connect to YouTube Music">
     </section>
 
     <main>
@@ -36,7 +39,6 @@
                 <select id="playlistSelector" aria-label="Playlist Selector"></select>
 
                 <button id="convertBtn" type="submit">Convert</button>
-
             </fieldset>
         </form>
     </main>
