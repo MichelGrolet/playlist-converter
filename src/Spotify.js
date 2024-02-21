@@ -1,13 +1,14 @@
 import MusicProviderInterface from './MusicProviderInterface.js';
 import 'https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js';
+const CORSPrefix = '';
 
 class Spotify extends MusicProviderInterface {
     static instance = null;
     static APIKey = "c46b5e32ccfa4cd583b351c58cb9f99d";
-    static scopes = 'user-read-private user-read-email';
+    static scopes = 'user-read-private user-read-email playlist-read-private playlist-read-collaborative playlist-modify-private playlist-modify-public user-library-modify';
     static prefix = "spotify";
     static name = "Spotify";
-    static redirectUri = "http://localhost:52330/index.html";
+    static redirectUri = "http://localhost:5500/index.html";
 
     playlists = [];
 
@@ -30,6 +31,7 @@ class Spotify extends MusicProviderInterface {
     async cleanLocalStorage() {
         localStorage.removeItem(Spotify.prefix+'AccessToken');
         localStorage.removeItem(Spotify.prefix+'CodeVerifier');
+        
     }
 
     generateRandomString(length) {
@@ -95,7 +97,7 @@ class Spotify extends MusicProviderInterface {
         localStorage.setItem(Spotify.prefix + 'AccessToken', token);
     }
 
-    async fetchPlaylistData(playlistId) {
+    async fetchPlaylist(playlistId) {
         try {
             const response = await axios.post(`https://api.spotify.com/v1/me/playlists/${playlistId}/tracks`, {
                 headers: {
@@ -104,8 +106,7 @@ class Spotify extends MusicProviderInterface {
             });
             const tracks = response.data.items.map(track => ({
                 name: track.name,
-                author: track.artists[0].name,
-                id: `spotify:track:${track.id}`
+                author: track.artists[0].name
             }));
             console.log(tracks);
             return {
@@ -113,48 +114,93 @@ class Spotify extends MusicProviderInterface {
                 description: response.data.description,
                 tracks: tracks
             }
-        } catch {
+        } catch (error) {
             console.error('Error fetching Spotify playlists:', error);
             return [];
         }
     }
 
-    async createPlaylist(data) {
+    async getUserId() {
         try {
-            const response = await axios.post('https://api.spotify.com/v1/me/playlists', {
+            const response = await axios.get('https://api.spotify.com/v1/me', {
                 headers: {
-                    name: data.name,
-                    description: data.description,
-                    public: true,
-                    collaborative: false,
-                    authorization: `Bearer ${this.getAccessToken()}`,
+                    Authorization: `Bearer ${this.getAccessToken()}`,
+                },
+            });
+            return response.data.id;
+        } catch (error) {
+            console.error('Error fetching user ID:', error);
+            return null;
+        }
+    }
+
+    async createPlaylist(data) {
+        console.log('Creating a new playlist with data:');
+        console.log(data);
+        try {
+            const userId = await this.getUserId();
+            if (!userId) {
+                throw new Error('User ID is missing.'); // Handle missing user ID
+            }
+            const response = await axios.post(`https://api.spotify.com/v1/users/${userId}/playlists`, {
+                name: data.name,
+                public: true,
+                collaborative: false,
+                description: data.description
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${this.getAccessToken()}`,
                 }
             });
+
             const playlistId = response.data.id;
 
-            this.addTracksToPlaylist(data.tracks, playlistId);
+            this.addTracksToPlaylist(playlistId, data.tracks);
 
             return playlistId;
-        } catch {
+        } catch (error) {
             console.error('Error creating a new playlist:', error);
             return [];
         }
     }
 
-    async addTracksToPlaylist(tracks) {
-        const uris = Object.values(tracks).map(track => track.id).join(',');    
-
+    async addTracksToPlaylist(playlistId, tracks) {
+        try {
+            const accessToken = this.getAccessToken();
+            if (!accessToken) {
+                console.error('Access token is not defined');
+                return;
+            }
+            let spotifyTracksURIsCSV = '';
+            for (const track of tracks) {
+                const trackResponse = await axios.get(`${CORSPrefix}https://api.spotify.com/v1/search`, {
+                    q: `${track.name} ${track.author}`,
+                    type: 'track',
+                    limit: 1
+                }, {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                    }
+                });
+                if (trackResponse.data.tracks.items[0].uri !== undefined && trackResponse.data.tracks.items[0].uri.startsWith('spotify:track:')) {
+                    spotifyTracksURIsCSV += `${trackResponse.data.tracks.items[0].uri},`;
+                }
+            }
+        } catch (error) {
+            console.error('Error searching for tracks:', error);
+            return [];
+        }
         try {
             // add tracks to the playlist
-            const playlistId = this.createPlaylist();
-            const response = await axios.post(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
-                headers: {
-                    uris: uris,
-                    authorization: `Bearer ${this.getAccessToken()}`
-                }
-            });
+            const response = await axios.post(`${CORSPrefix}https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
+                    uris: spotifyTracksURIsCSV,
+                }, {
+                    headers: {
+                        'Authorization': `Bearer ${this.getAccessToken()}`,
+                    }
+                });
             return response.data;
-        } catch {
+        } catch (error) {
             console.error('Error adding tracks to the playlist:', error);
             return [];
         }

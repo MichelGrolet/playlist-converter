@@ -23,15 +23,15 @@ export default class MusicProviderInterface {
         throw new Error("Method 'displayPlaylists()' must be implemented.");
     }
 
-    async fetchPlaylistData(playlistId) {
+    async fetchPlaylist(playlistId) {
         throw new Error("Method 'fetchTracks()' must be implemented.");
     }
 
-    async createPlaylist(name, description) {
+    async createPlaylist(data) {
         throw new Error("Method 'createPlaylist()' must be implemented.");
     }
 
-    async addTracksToPlaylist(tracks) {
+    async addTracksToPlaylist(playlistId, tracks) {
         throw new Error("Method 'addTracksToPlaylist()' must be implemented.");
     }
 }

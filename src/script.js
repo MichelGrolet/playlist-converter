@@ -124,13 +124,13 @@ function getMusicService(prefix) {
 }
 
 async function convertPlaylist() {
-    const from = getMusicService(document.getElementById('fromMusicService'));
-    const to = getMusicService(document.getElementById('toMusicService'));
+    const from = getMusicService(document.getElementById('fromMusicService').value);
+    const to = getMusicService(document.getElementById('toMusicService').value);
 
     const playlistId = document.getElementById('playlistSelector').value;
-    const playlistData = await from.instance.fetchPlaylistData(playlistId);
-    
-    to.createPlaylist(playlistData);
+    const playlistData = await from.instance.fetchPlaylist(playlistId);
+    console.log("playlistData", playlistData);
+    to.instance.createPlaylist(playlistData);
 }
 
 function fillForm() {
@@ -147,6 +147,7 @@ function fillForm() {
             opt.textContent = musicService.name;
             if (musicService.prefix === selectedOption.prefix) opt.selected = true;
             selectElement.appendChild(opt);
+            updatePlaylistList();
         }
     }
 
@@ -155,6 +156,15 @@ function fillForm() {
     populateSelectOptions(toMusicServiceSelect);
 
     // Change the playlists when the music service changes
-    fromMusicServiceSelect.addEventListener('change', updatePlaylistList);
-    convertBtn.addEventListener('click', convertPlaylist);
+    fromMusicServiceSelect.addEventListener('change', function () {
+        if (toMusicServiceSelect.value === fromMusicServiceSelect.value) {
+            // Change the other select to the next music service in config.musicServices
+            toMusicServiceSelect.value = Array.from(config.musicServices.keys()).find(key => key !== fromMusicServiceSelect.value);
+        }
+        updatePlaylistList();
+    });
+    convertBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        convertPlaylist();
+    });
 }

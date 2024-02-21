@@ -1,5 +1,6 @@
 import MusicProviderInterface from './MusicProviderInterface.js';
 import 'https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js';
+const CORSPrefix = '';
 
 class YouTubeMusic extends MusicProviderInterface {
     static instance = null;
@@ -7,7 +8,7 @@ class YouTubeMusic extends MusicProviderInterface {
     static scopes = 'https://www.googleapis.com/auth/youtube';
     static prefix = "youTubeMusic";
     static name = "YouTube Music";
-    static redirectUri = "http://localhost:52330/index.html";
+    static redirectUri = "http://localhost:5500/index.html";
 
     playlists = [];
 
@@ -78,38 +79,69 @@ class YouTubeMusic extends MusicProviderInterface {
         localStorage.setItem(YouTubeMusic.prefix+'AccessToken', token);
     }
 
-    async fetchPlaylistData(playlistId) {
-        try {
-            const response = await axios.get('https://www.googleapis.com/youtube/v3/playlistItems', {
-                params: {
-                    part: 'contentDetails,snippet',
-                    playlistId: playlistId,
-                    maxResults: 50  // Adjust as needed
-                },
-                headers: {
-                    'Authorization': `Bearer ${this.getAccessToken()}`
-                }
-            });
-            const tracks = response.data.items.map(track => ({
-                name: track.contentDetails.title,
-                author: track.snippet.channelTitle,
-                id: track.id
-            }));
-            console.log(tracks);
-            return {
-                name: response.data.items[0].snippet.playlistTitle,
-                description: response.data.items[0].snippet.description,
-                tracks: tracks
-            };
-        } catch {
-            console.error('Error fetching YouTube playlists:', error);
-            return [];
+    async fetchPlaylist(playlistId) {
+        self = this;
+        async function fetchPlaylistItems() {
+            console.log(self.getAccessToken());
+            try {
+                const response = await axios.get('https://www.googleapis.com/youtube/v3/playlistItems', {
+                    params: {
+                        part: 'snippet',
+                        playlistId: playlistId,
+                        maxResults: 50
+                    },
+                    headers: {
+                        'Authorization': `Bearer ${self.getAccessToken()}`
+                    }
+                });
+                const tracks = response.data.items.map(track => ({
+                    name: track.snippet.title,
+                    author: track.snippet.videoOwnerChannelTitle
+                }));
+                return tracks;
+            } catch (error) {
+                console.error('Error fetching YouTube playlist items:', error);
+                return [];
+            }
         }
+
+        async function fetchPlaylistData() {
+            try {
+                const response = await axios.get('https://www.googleapis.com/youtube/v3/playlists', {
+                    params: {
+                        part: 'snippet',
+                        id: playlistId
+                    },
+                    headers: {
+                        'Authorization': `Bearer ${self.getAccessToken()}`
+                    }
+                });
+                const data = {
+                    name: response.data.items[0].snippet.title,
+                    description: response.data.items[0].snippet.description
+                };
+                return data;
+            } catch (error) {
+                console.error('Error fetching YouTube playlist data:', error);
+                return {};
+            }
+        }
+
+        const tracks = await fetchPlaylistItems();
+        const { name, description } = await fetchPlaylistData();
+        const data = {
+            name: name,
+            description: description,
+            tracks: tracks
+        };
+        console.log("YouTubeMusic.fetchPlaylistData() data:");
+        console.log(data);
+        return data;
     }
 
     async createPlaylist(data) {
         try {
-            const response = await axios.post('https://www.googleapis.com/youtube/v3/playlists', {
+            const response = await axios.post(`${CORSPrefix}https://www.googleapis.com/youtube/v3/playlists`, {
                 snippet: {
                     title: data.name,
                     description: data.description
@@ -119,13 +151,13 @@ class YouTubeMusic extends MusicProviderInterface {
                 }
             }, {
                 headers: {
-                    'Authorization': `Bearer ${this.getAccessToken()}`
+                    'Authorization': `Bearer ${this.getAccessToken()}`,
                 }
             });
             const playlistId = response.data.id;
             console.log('Playlist created with ID:', playlistId);
 
-            this.addTracksToPlaylist(data.tracks, playlistId);
+            this.addTracksToPlaylist(playlistId, data.tracks);
 
             return playlistId;
         } catch (error) {
@@ -133,13 +165,10 @@ class YouTubeMusic extends MusicProviderInterface {
         }
     }
 
-    async addTracksToPlaylist(tracks) {
-        const playlistId = 'YOUR_PLAYLIST_ID';
-
-        // 2. Loop through the tracks and add them to the playlist
-        tracks.forEach(async (track) => {
+    async addTracksToPlaylist(playlistId, tracks) {
+        for (const track of tracks) {
             try {
-                const response = await axios.post('https://www.googleapis.com/youtube/v3/playlistItems', {
+                const response = await axios.post(`${CORSPrefix}https://www.googleapis.com/youtube/v3/playlistItems`, {
                     snippet: {
                         playlistId: playlistId,
                         resourceId: {
@@ -149,18 +178,14 @@ class YouTubeMusic extends MusicProviderInterface {
                     }
                 }, {
                     headers: {
-                        'Authorization': `Bearer ${this.getAccessToken()}`
+                        'Authorization': `Bearer ${this.getAccessToken()}`,
                     }
                 });
                 console.log('Track added to playlist:', track.name);
             } catch (error) {
                 console.error('Error adding track to playlist:', error);
             }
-        });
-    }
-
-    addTracksToPlaylist(tracks) {
-        throw new Error("Method 'addTracksToPlaylist()' must be implemented.");
+        }
     }
 }
 
